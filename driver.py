@@ -2,7 +2,7 @@ import sys
 import math as m
 
 class Node:
-    def __init__(self, state, level, nxt=None, pre=None, parent=None):
+    def __init__(self, state, level, move, nxt=None, pre=None, parent=None):
         self.state = state
         self.next = nxt
         self.prev = pre
@@ -10,7 +10,7 @@ class Node:
         self.av_move = ['UP', 'DOWN', 'LEFT', 'RIGHT']
         self.parent = parent
         self.level = level
-        self.move
+        self.move = move
         self.av_move_update()
     def av_move_update(self):
         pos = self.state.index('0')
@@ -112,13 +112,17 @@ def find_children(root):
     for op in root.av_move:
         if op == 'UP':
             s[pos - 3], s[pos] = s[pos], s[pos - 3]
+            move = 'U'
         elif op == 'DOWN':
             s[pos + 3], s[pos] = s[pos], s[pos + 3]
+            move = 'D'
         elif op == 'LEFT':
             s[pos - 1], s[pos] = s[pos], s[pos - 1]
+            move = 'L'
         elif op == 'RIGHT':
             s[pos + 1], s[pos] = s[pos], s[pos + 1]
-        neighbors.append(Node(s))
+            move = 'R'
+        neighbors.append(Node(s, root.level+1, move, parent=root))
     return neighbors
 
 
@@ -141,14 +145,39 @@ def DFS(frontier, explored, goal_state):
     DFS(frontier, explored, goal_state)
 
 
+def DFS(init_node, goal_state, capFrontier, capVisited):
+    num_visited, max_search_depth = 0, 0
+    frontier = Stack(capFrontier)
+    visited = Set(capVisited)
+    frontier.push(init_node)
+    while True:
+        if frontier.is_empty():             # No solution
+            return None, num_visited, max_search_depth
+        node = frontier.pop()
+        if node.state == goal_state:
+            return node, num_visited, max_search_depth
+        if visited.is_in(node.state):
+            visited.push(node)
+            num_visited += 1
+            if node.level > max_search_depth:
+                max_search_depth = node.level
+            children = find_children(node)
+            for child in children:
+                if (not frontier.is_in(child.state)) and (not visited.is_in(child.state)):
+                    frontier.push(child)
+
+
+
 
 def main():
     goal_state = '0,1,2,3,4,5,6,7,8'
     capFrontier = 100
-    capExplored = 1000
+    capVisited = 1000
     args = sys.argv[1:]
     alg, init_state = args[0], args[1]
-    node = Node(init_state, 0, nxt=None, pre=None, parent=None)
+    init_node = Node(init_state, 0, nxt=None, pre=None, parent=None)
+    if alg == 'dfs':
+        DFS(init_node, goal_state, capFrontier, capVisited)
     sFrontier, qFrontier = Stack(capFrontier), Queue(capFrontier)
     explored = Set(capExplored)
     sFrontier.push(node)
