@@ -1,3 +1,4 @@
+import sys
 import math as m
 
 class Node:
@@ -7,9 +8,10 @@ class Node:
         self.prev = pre
         self.n = m.sqrt(len(self.state)+1)
         self.av_move = ['UP', 'DOWN', 'LEFT', 'RIGHT']
-        self.av_move_update()
         self.parent = parent
         self.level = level
+        self.move
+        self.av_move_update()
     def av_move_update(self):
         pos = self.state.index('0')
         if pos//self.n == 1:
@@ -26,6 +28,7 @@ class Set:
     def __init__(self, cap):                 # cap refer to the capacity of the hash table
         self.hs_table = [None] * cap
         self.capacity = cap
+        self.level = 0
         self.head = None
         self.tail = None
     def hash_func(self, key):
@@ -102,8 +105,6 @@ class Queue(Set):
 
 
 
-
-
 def find_children(root):
     neighbors = []
     s = root.state
@@ -119,3 +120,42 @@ def find_children(root):
             s[pos + 1], s[pos] = s[pos], s[pos + 1]
         neighbors.append(Node(s))
     return neighbors
+
+
+def BSF(frontier):
+    pass
+
+
+
+def DFS(frontier, explored, goal_state):
+    node = frontier.pop()
+    explored.push(node)
+    if node.state == goal_state:
+        return node
+    children = find_children(node)
+    for child in children:
+        if frontier.is_in(child.state) or explored.is_in(child.state):
+            continue
+        else:
+            frontier.push(child)
+    DFS(frontier, explored, goal_state)
+
+
+
+def main():
+    goal_state = '0,1,2,3,4,5,6,7,8'
+    capFrontier = 100
+    capExplored = 1000
+    args = sys.argv[1:]
+    alg, init_state = args[0], args[1]
+    node = Node(init_state, 0, nxt=None, pre=None, parent=None)
+    sFrontier, qFrontier = Stack(capFrontier), Queue(capFrontier)
+    explored = Set(capExplored)
+    sFrontier.push(node)
+    qFrontier.push(node)
+
+    dfs_goal_node = DFS(sFrontier, explored, goal_state)
+
+
+if __name__ == '__main__':
+    main()
