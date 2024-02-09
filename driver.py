@@ -2,11 +2,11 @@ import sys
 import math as m
 
 class Node:
-    def __init__(self, state, level, move, nxt=None, pre=None, parent=None):
-        self.state = state
+    def __init__(self, state, level, move=None, nxt=None, pre=None, parent=None):
+        self.state = state.replace(',', '')
         self.next = nxt
         self.prev = pre
-        self.n = m.sqrt(len(self.state)+1)
+        self.n = m.sqrt(len(self.state))
         self.av_move = ['UP', 'DOWN', 'LEFT', 'RIGHT']
         self.parent = parent
         self.level = level
@@ -46,9 +46,14 @@ class Set:
             self.head = root
             self.tail = root
         else:
-            root.prev = self.tail
-            self.tail.next = root
-            self.tail = root
+            root.next = None
+            if self.tail is None:
+                self.head = root
+                self.tail = root
+            else:
+                root.prev = self.tail
+                self.tail.next = root
+                self.tail = root
     def is_empty(self):
         if self.head is None and self.tail is None:
             return True
@@ -56,9 +61,11 @@ class Set:
     def is_in(self, state):
         h = self.hash_func(state)
         if self.hs_table[h] is not None:
+            # print(len(self.hs_table[h]))
             for root in self.hs_table[h]:
-                if root.state == state:
-                    return True
+                if root is not None:
+                    if root.state == state:
+                        return True
         return False
 """
     def pop(self, state):
@@ -79,12 +86,19 @@ class Stack(Set):
     def pop(self):
         if not self.is_empty():
             node = self.tail
+            # print(type(node), node.state)
             h = self.hash_func(node.state)
             self.tail = self.tail.prev
+            if self.tail is not None:
+                self.tail.next = None
+            # print('hs_table is: ', type(self.hs_table[h]))
             if self.hs_table[h] is not None:
                 for i in range(len(self.hs_table[h])):
-                    if self.hs_table[h][i].state == node.state:
+                    if self.hs_table[h][i].zstate == node.state:
+                        # self.hs_table[h][i] = None
                         del self.hs_table[h][i]
+                        if len(self.hs_table[h]) == 0:
+                            self.hs_table[h] = None
         return node
 
 
@@ -103,24 +117,33 @@ class Queue(Set):
                         del self.hs_table[h][i]
         return node
 
-
+def str_swap(str, pos1, pos2):
+    return str[:pos1] + str[pos2] + str[pos1+1:pos2] + str[pos1] + str[pos2+1:]
 
 def find_children(root):
     neighbors = []
     s = root.state
-    pos = root.index(0)
+    pos = s.index('0')
     for op in root.av_move:
         if op == 'UP':
-            s[pos - 3], s[pos] = s[pos], s[pos - 3]
+            # s[pos - 3], s[pos] = s[pos], s[pos - 3]
+            # print(pos, 'U')
+            s = str_swap(s, pos-3, pos)
             move = 'U'
         elif op == 'DOWN':
-            s[pos + 3], s[pos] = s[pos], s[pos + 3]
+            # s[pos + 3], s[pos] = s[pos], s[pos + 3]
+            # print(pos, 'D')
+            s = str_swap(s, pos, pos+3)
             move = 'D'
         elif op == 'LEFT':
-            s[pos - 1], s[pos] = s[pos], s[pos - 1]
+            # s[pos - 1], s[pos] = s[pos], s[pos - 1]
+            # print(pos, 'L')
+            s = str_swap(s, pos-1, pos)
             move = 'L'
         elif op == 'RIGHT':
-            s[pos + 1], s[pos] = s[pos], s[pos + 1]
+            # s[pos + 1], s[pos] = s[pos], s[pos + 1]
+            # print(pos, 'R')
+            s = str_swap(s, pos, pos+1)
             move = 'R'
         neighbors.append(Node(s, root.level+1, move, parent=root))
     return neighbors
@@ -131,18 +154,6 @@ def BSF(frontier):
 
 
 
-def DFS(frontier, explored, goal_state):
-    node = frontier.pop()
-    explored.push(node)
-    if node.state == goal_state:
-        return node
-    children = find_children(node)
-    for child in children:
-        if frontier.is_in(child.state) or explored.is_in(child.state):
-            continue
-        else:
-            frontier.push(child)
-    DFS(frontier, explored, goal_state)
 
 
 def DFS(init_node, goal_state, capFrontier, capVisited):
@@ -150,15 +161,18 @@ def DFS(init_node, goal_state, capFrontier, capVisited):
     frontier = Stack(capFrontier)
     visited = Set(capVisited)
     frontier.push(init_node)
+
     while True:
         if frontier.is_empty():             # No solution
             return None, num_visited, max_search_depth
         node = frontier.pop()
+        print(node)
         if node.state == goal_state:
             return node, num_visited, max_search_depth
-        if visited.is_in(node.state):
+        if not visited.is_in(node.state):
             visited.push(node)
             num_visited += 1
+            print(num_visited)
             if node.level > max_search_depth:
                 max_search_depth = node.level
             children = find_children(node)
@@ -170,20 +184,17 @@ def DFS(init_node, goal_state, capFrontier, capVisited):
 
 
 def main():
-    goal_state = '0,1,2,3,4,5,6,7,8'
+    goal_state = '012345678'
     capFrontier = 100
     capVisited = 1000
     args = sys.argv[1:]
     alg, init_state = args[0], args[1]
     init_node = Node(init_state, 0, nxt=None, pre=None, parent=None)
     if alg == 'dfs':
-        DFS(init_node, goal_state, capFrontier, capVisited)
-    sFrontier, qFrontier = Stack(capFrontier), Queue(capFrontier)
-    explored = Set(capExplored)
-    sFrontier.push(node)
-    qFrontier.push(node)
+        goal_node, num_visited, max_search_depth = DFS(init_node, goal_state, capFrontier, capVisited)
+    # if goal_node is None:
+    #     print('No solution!!!', str(num_visited) + ' states were explored.', 'max_search_depth = ' + str(max_search_depth), sep='\n')
 
-    dfs_goal_node = DFS(sFrontier, explored, goal_state)
 
 
 if __name__ == '__main__':
